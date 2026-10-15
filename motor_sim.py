@@ -156,7 +156,7 @@ def run_regression_simulation(dxf_path, dt=0.005, anim_frames=140):
     pbar = tqdm(total=pbar_total, desc="Burning Propellant", unit="‰",
                 bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]")
 
-    times, pressures, thrusts, burn_rates, webs, geom_history = [], [], [], [], [], []
+    times, pressures, burn_rates, webs, geom_history = [], [], [], [], [], []
     web_burned, current_time, last_pbar_val = 0.0, 0.0, 0
 
     while True:
@@ -176,12 +176,9 @@ def run_regression_simulation(dxf_path, dt=0.005, anim_frames=140):
         term = (a * rho_p * c_star * A_burn) / (g0 * A_throat)
         Pc = term ** (1.0 / (1.0 - n))
         rb = a * (Pc ** n)
-        cf = get_thrust_coefficient(expansion_ratio=expansion_ratio, pc_psi=Pc)
-        thrust = cf * Pc * A_throat
 
         times.append(current_time)
         pressures.append(Pc)
-        thrusts.append(thrust)
         burn_rates.append(rb)
         webs.append(web_burned)
         geom_history.append(current_prop)
@@ -201,7 +198,6 @@ def run_regression_simulation(dxf_path, dt=0.005, anim_frames=140):
 
     time_arr = np.array(times)
     p_arr = np.array(pressures)
-    f_arr = np.array(thrusts)
 
     burn_time = time_arr[-1] if len(time_arr) > 0 else 0.0
     max_pc = np.max(p_arr) if len(p_arr) > 0 else 0.0
@@ -295,6 +291,8 @@ def run_regression_simulation(dxf_path, dt=0.005, anim_frames=140):
     print("Export complete.")
 
     plt.show()
+
+    return time_arr, p_arr, m_prop_arr
 
 if __name__ == "__main__":
     run_regression_simulation("Group10_P.dxf", dt=0.005, anim_frames=140)

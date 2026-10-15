@@ -1,0 +1,16 @@
+import numpy as np
+
+PSI2PA = 6895
+PA2PSI = 1 / 6895
+IN2M = 0.0254
+M2IN = 1 / 0.0254
+LBF2N = 4.44822
+LBM2KG = 0.453592
+M2FT = 3.28084
+FT2M = 1 / 3.28084
+M32FT3 = 35.3147
+IN32M3 = 1 / 61023.7
+RPM2RAD = 2 * np.pi / 60
+g = 9.81
+RAD2DEG = 180 / np.pi
+DEG2RAD = np.pi / 180
