@@ -11,6 +11,6 @@ FT2M = 1 / 3.28084
 M32FT3 = 35.3147
 IN32M3 = 1 / 61023.7
 RPM2RAD = 2 * np.pi / 60
-g = 9.81
+g = 9.80665
 RAD2DEG = 180 / np.pi
 DEG2RAD = np.pi / 180

@@ -2,78 +2,99 @@ import constants as c
 import numpy as np
 from scipy.integrate import solve_ivp
 import matplotlib.pyplot as plt
+from performance import calc_cf
 
-def rocket_2dof(rocket_params, motor_params, prop_params, launch_params):            
+def atmosphere(h):
+    P0 = 101325.0 # Pa
+    T0 = 288.15 # K
+    R = 287 # J/(kg*K)
+    L = 0.0065 # K/m
+
+    T = T0 - L * h
+    P = P0 * (T / T0) ** (c.g / (L * R))
+    rho = P / (R * T)   
+
+    return P, rho
+
+def rocket_2dof(rocket_params, motor_params, prop_params, launch_params, burn_data):            
     d_rocket, m_inert = rocket_params
     id_case, L_case, d_throat, d_exit = motor_params
-    rho_p, c_star, a, n = prop_params
+    c_star, gamma, rho_p, a, n = prop_params
     launch_angle, rail_length, wind_speed = launch_params
+    time_arr, Pc_arr, m_prop_arr = burn_data
 
     Cd = 0.3            
-    air_density = 1.225  
-    s = 0.25 * np.pi * d_rocket**2         
+    s = 0.25 * np.pi * d_rocket**2
+    At = 0.25 * np.pi * d_throat**2
+    Ae = 0.25 * np.pi * d_exit**2
 
     theta_rail = np.radians(launch_angle)
     e_rail = np.array([np.cos(theta_rail), np.sin(theta_rail)])  # rail direction
 
-    # State: [x (downrange), z (altitude, up), vx, vz, m]
-    y0 = [0.0, 0.0, 0.0, 0.0, 1.0]
+    y0 = [0.0, 0.0, 0.0, 0.0] # Initial conditions
 
-    def mass(t):
-        return m
+    def get_mass(t):
+        return m_inert + np.interp(t, time_arr, m_prop_arr)
 
-    def thrust(t):
-        return T
-
-    def dynamics(t, y, T, mdot, on_rail):
+    def get_Pc(t):
+        return np.interp(t, time_arr, Pc_arr)
+    
+    def dynamics(t, y):
         x, z, vx, vz = y
-        m = mass(t)
-        T = thrust(t)
 
-        if on_rail:
+        Pa, rho = atmosphere(z)
+        m = get_mass(t) if t <= time_arr[-1] else m_inert # Vehicle mass
+        Pc = get_Pc(t) if t <= time_arr[-1] else 0.0 # Chamber pressure
+        cf = calc_cf(Pc, Pa, At, Ae, gamma) # Thrust coefficient
+        T = cf * Pc * At # Thrust
+
+        dist = np.hypot(x, z)
+
+        if dist < rail_length:
             v_rail = vx * e_rail[0] + vz * e_rail[1]
             v_air = v_rail - wind_speed * e_rail[0]          
-            D = 0.5 * Cd * air_density * s * v_air * abs(v_air)
+            D = 0.5 * Cd * rho * s * v_air * abs(v_air)
             F = T - D - m * c.g * e_rail[1]
             a = F / m
-            if v_rail <= 0 and a < 0: # rail holds it until thrust > weight
-                a = 0.0
             return [v_rail * e_rail[0], v_rail * e_rail[1],
-                    a * e_rail[0], a * e_rail[1], mdot]
+                    a * e_rail[0], a * e_rail[1]]
 
         vax, vaz = vx - wind_speed, vz
         Va = np.hypot(vax, vaz)
         ux, uz = (vax / Va, vaz / Va) if Va > 1e-9 else e_rail
 
-        D = 0.5 * Cd * air_density * s * Va**2
+        D = 0.5 * Cd * rho * s * Va**2
         ax = (T - D) * ux / m
         az = (T - D) * uz / m - c.g
 
-        return [vx, vz, ax, az, mdot]
+        return [vx, vz, ax, az]
 
-    def rail_exit(t, y, T, mdot, on_rail):
-        return y[0] * e_rail[0] + y[1] * e_rail[1] - rail_length
+    t_burn = time_arr[-1]
+
+    def rail_exit(t, y):
+        return np.hypot(y[0], y[1]) - rail_length
     rail_exit.terminal = True
     rail_exit.direction = 1
 
-    def hit_ground(t, y, T, mdot, on_rail):
+    def hit_ground(t, y):
         return y[1]
     hit_ground.terminal = True
     hit_ground.direction = -1
 
-    rail = solve_ivp(dynamics, [0, t_burn], y0, args=(Tmax, mdot_burn, True),
-                    max_step=0.001, events=rail_exit)
+    dt = np.min(np.diff(time_arr))
+
+    # On the rail
+    rail = solve_ivp(dynamics, [0, t_burn], y0, events=rail_exit, max_step=dt)
     if rail.status != 1:
         raise RuntimeError("Rocket did not leave the rail before burnout")
-    t_exit = rail.t_events[0][0]
-    v_exit = np.hypot(*rail.y_events[0][0][2:4])
+    t_exit, y_exit = rail.t_events[0][0], rail.y_events[0][0]
 
-    burn = solve_ivp(dynamics, [t_exit, t_burn], rail.y_events[0][0],
-                    args=(Tmax, mdot_burn, False), max_step=0.01)
+    # Burn phase
+    burn = solve_ivp(dynamics, [t_exit, t_burn], y_exit, max_step=dt)
 
-    coast = solve_ivp(dynamics, [t_burn, t_burn + 300], burn.y[:, -1],
-                    args=(0.0, 0.0, False), max_step=0.05, events=hit_ground)
+    # Coast phase
+    coast = solve_ivp(dynamics, [t_burn, t_burn + 600], burn.y[:, -1], events=hit_ground, max_step=dt)
 
-    time = np.concatenate([rail.t, burn.t[1:], coast.t[1:]])
-    x, z, vx, vz, m = np.hstack([rail.y, burn.y[:, 1:], coast.y[:, 1:]])
-    speed = np.hypot(vx, vz)
+    t = np.concatenate([rail.t, burn.t[1:], coast.t[1:]])
+    x, z, vx, vz = np.hstack([rail.y, burn.y[:, 1:], coast.y[:, 1:]])
+    return t, x, z, vx, vz
