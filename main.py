@@ -33,7 +33,9 @@ wind_speed = -2 # m/s
 launch_params = [launch_angle, rail_length, wind_speed]
 
 # Run motor simulation
-time_arr, p_arr, m_prop_arr = run_regression_simulation(motor_params, prop_params, plot=False, export=False)
+time_arr, p_arr, m_prop_arr, thrust_arr = run_regression_simulation(
+    motor_params, prop_params, plot=False, export=False
+)
 burn_data = [time_arr, p_arr, m_prop_arr]
 
 # Run 2dof
@@ -56,8 +58,8 @@ print("\n")
 t_burn = time_arr[-1]
 line = dict(color="#2a6fdb", lw=2)
 
-fig, axs = plt.subplots(2, 2, figsize=(12, 8))
-ax_traj, ax_alt, ax_spd, ax_acc = axs.flat
+fig, axs = plt.subplots(3, 2, figsize=(12, 11))
+ax_traj, ax_alt, ax_spd, ax_acc, ax_pc, ax_thrust = axs.flat
 
 # Trajectory
 ax_traj.plot(x, z, **line)
@@ -88,7 +90,21 @@ ax_acc.set_xlabel("Time [s]")
 ax_acc.set_ylabel("Acceleration [g]")
 ax_acc.set_title(f"Acceleration (max {accel[i_a] / c.g:.1f} g)")
 
-for a in (ax_alt, ax_spd, ax_acc):
+# Chamber pressure
+p_psi = p_arr * c.PA2PSI
+ax_pc.plot(time_arr, p_psi, **line)
+ax_pc.set_xlabel("Time [s]")
+ax_pc.set_ylabel("Chamber pressure [psi]")
+ax_pc.set_title(f"Chamber Pressure (max {np.max(p_psi):.1f} psi)")
+
+# Sea-level thrust
+thrust_lbf = thrust_arr / c.LBF2N
+ax_thrust.plot(time_arr, thrust_lbf, **line)
+ax_thrust.set_xlabel("Time [s]")
+ax_thrust.set_ylabel("Sea-Level Thrust [lbf]")
+ax_thrust.set_title(f"Sea-Level Thrust (max {np.max(thrust_lbf):.1f} lbf)")
+
+for a in (ax_alt, ax_spd, ax_acc, ax_pc, ax_thrust):
     a.axvline(t_burn, color="gray", ls="--", lw=1)
     a.text(t_burn, 0.97, " burnout", transform=a.get_xaxis_transform(),
            va="top", color="gray", fontsize=9)

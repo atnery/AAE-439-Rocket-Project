@@ -102,7 +102,7 @@ def shapely_to_mpl_patch(geom, facecolor='darkorange', edgecolor='black', alpha=
 def run_regression_simulation(motor_params, prop_params, dxf_path="Group10_P.dxf",
                               dxf_scale=c.IN2M, dt=0.005, plot=True, export=True,
                               anim_frames=140, gif_path="Group10_P_burn.gif"):
-    """Burn the grain and return (time [s], Pc [Pa], propellant mass [kg]).
+    """Burn the grain and return (time [s], Pc [Pa], propellant mass [kg], thrust [N]).
 
     All inputs are SI, in the same order main.py builds them:
         motor_params = [id_case, L_case, d_throat, d_exit]     (m)
@@ -202,7 +202,7 @@ def run_regression_simulation(motor_params, prop_params, dxf_path="Group10_P.dxf
         animate_burn(time_arr, p_arr, f_arr, burn_rates, webs, geom_history, r_case,
                      anim_frames=anim_frames, gif_path=gif_path, plot=plot, export=export)
 
-    return time_arr, p_arr, m_prop_arr
+    return time_arr, p_arr, m_prop_arr, f_arr
 
 
 def animate_burn(time_arr, p_arr, f_arr, burn_rates, webs, geom_history, r_case,
