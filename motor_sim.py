@@ -187,12 +187,16 @@ def run_regression_simulation(motor_params, prop_params, dxf_path="Group10_P.dxf
 
     burn_time = time_arr[-1]
     max_pc = np.max(p_arr)
+    max_thrust = np.max(f_arr)
+    average_thrust = np.mean(f_arr)
     impulse = np.sum(0.5 * (f_arr[1:] + f_arr[:-1]) * np.diff(time_arr))
-
-    print(f"Burn Time:                      {burn_time:.3f} s")
-    print(f"Max Chamber Pressure (MEOP):    {max_pc * c.PA2PSI:.2f} psi")
-    print(f"Propellant Mass:                {m_prop_arr[0]:.3f} kg")
-    print(f"Total Impulse (sea level):      {impulse:.1f} N*s")
+    print("\n===================== Burn Data ====================")
+    print(f"Burn time:                      {burn_time:.3f} s")
+    print(f"Max chamber pressure (MEOP):    {max_pc * c.PA2PSI:.2f} psi")
+    print(f"Max thrust:                     {max_thrust / c.LBF2N:.1f} lbf")
+    print(f"Average thrust:                 {average_thrust / c.LBF2N:.1f} lbf")
+    print(f"Propellant mass:                {m_prop_arr[0] / c.LBM2KG:.3f} lbm")
+    print(f"Total impulse (sea level):      {impulse:.1f} N*s")
 
     if plot or export:
         animate_burn(time_arr, p_arr, f_arr, burn_rates, webs, geom_history, r_case,

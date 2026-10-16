@@ -76,10 +76,10 @@ def rocket_2dof(rocket_params, motor_params, prop_params, launch_params, burn_da
     rail_exit.terminal = True
     rail_exit.direction = 1
 
-    def hit_ground(t, y):
-        return y[1]
-    hit_ground.terminal = True
-    hit_ground.direction = -1
+    def apogee(t, y):
+        return y[3]
+    apogee.terminal = True
+    apogee.direction = -1
 
     dt = np.min(np.diff(time_arr))
 
@@ -92,9 +92,15 @@ def rocket_2dof(rocket_params, motor_params, prop_params, launch_params, burn_da
     # Burn phase
     burn = solve_ivp(dynamics, [t_exit, t_burn], y_exit, max_step=dt)
 
-    # Coast phase
-    coast = solve_ivp(dynamics, [t_burn, t_burn + 600], burn.y[:, -1], events=hit_ground, max_step=dt)
+    # Coast to apogee
+    coast = solve_ivp(dynamics, [t_burn, t_burn + 600], burn.y[:,-1], events=apogee, max_step=dt)
 
     t = np.concatenate([rail.t, burn.t[1:], coast.t[1:]])
-    x, z, vx, vz = np.hstack([rail.y, burn.y[:, 1:], coast.y[:, 1:]])
-    return t, x, z, vx, vz
+    y = np.hstack([rail.y, burn.y[:,1:], coast.y[:,1:]])
+    acc = np.array([dynamics(ti, yi)[2:] for ti, yi in zip(t, y.T)])
+
+    x, z, vx, vz = y
+    ax = acc[:,0]
+    az = acc[:,1]
+
+    return t, x, z, vx, vz, ax, az
