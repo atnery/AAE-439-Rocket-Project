@@ -5,14 +5,15 @@ import matplotlib.pyplot as plt
 from performance import calc_cf
 
 def atmosphere(h):
-    P0 = 101325.0 # Pa
-    T0 = 288.15 # K
-    R = 287 # J/(kg*K)
-    L = 0.0065 # K/m
-
-    T = T0 - L * h
-    P = P0 * (T / T0) ** (c.g / (L * R))
-    rho = P / (R * T)   
+    P0 = 101325.0   
+    T0 = 288.15    
+    L = -0.0065     
+    R = 287.05      
+    
+    H = 6356766.0 * h / (6356766.0 + h)
+    T = T0 + L * H
+    P = P0 * (T0 / T) ** (c.g / (R * L))
+    rho = P / (R * T)
 
     return P, rho
 
@@ -23,7 +24,7 @@ def rocket_2dof(rocket_params, motor_params, prop_params, launch_params, burn_da
     launch_angle, rail_length, wind_speed = launch_params
     time_arr, Pc_arr, m_prop_arr = burn_data
 
-    Cd = 0.3            
+    Cd = 0.45            
     s = 0.25 * np.pi * d_rocket**2
     At = 0.25 * np.pi * d_throat**2
     Ae = 0.25 * np.pi * d_exit**2

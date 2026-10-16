@@ -188,8 +188,9 @@ def run_regression_simulation(motor_params, prop_params, dxf_path="Group10_P.dxf
     burn_time = time_arr[-1]
     max_pc = np.max(p_arr)
     max_thrust = np.max(f_arr)
-    average_thrust = np.mean(f_arr)
     impulse = np.sum(0.5 * (f_arr[1:] + f_arr[:-1]) * np.diff(time_arr))
+    average_thrust = impulse / burn_time
+    
     print("\n===================== Burn Data ====================")
     print(f"Burn time:                      {burn_time:.3f} s")
     print(f"Max chamber pressure (MEOP):    {max_pc * c.PA2PSI:.2f} psi")
