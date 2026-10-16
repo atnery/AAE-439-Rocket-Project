@@ -12,8 +12,6 @@ from performance import calc_cf
 
 
 def extract_closed_port_from_dxf(dxf_path, scale=1.0, sample_pts_arc=32, sample_pts_spline=100):
-    """Read the port outline from a DXF. Coordinates are multiplied by `scale`
-    (e.g. c.IN2M for a drawing in inches) so the polygon comes back in meters."""
     doc = ezdxf.readfile(dxf_path)
     msp = doc.modelspace()
     curves = []
@@ -102,29 +100,18 @@ def shapely_to_mpl_patch(geom, facecolor='darkorange', edgecolor='black', alpha=
 def run_regression_simulation(motor_params, prop_params, dxf_path="Group10_P.dxf",
                               dxf_scale=c.IN2M, dt=0.005, plot=True, export=True,
                               anim_frames=140, gif_path="Group10_P_burn.gif"):
-    """Burn the grain and return (time [s], Pc [Pa], propellant mass [kg], thrust [N]).
-
-    All inputs are SI, in the same order main.py builds them:
-        motor_params = [id_case, L_case, d_throat, d_exit]     (m)
-        prop_params  = [c_star, gamma, rho_p, a, n]            (m/s, -, kg/m^3, m/s/Pa^n, -)
-    The burn rate law is r = a * Pc**n with Pc in Pa. The grain is a single
-    segment with inhibited ends (burning area = port perimeter x length).
-
-    plot:   show the regression animation window
-    export: save the animation as a GIF to gif_path (slow at 300 dpi)
-    """
+    
     id_case, L_grain, d_throat, d_exit = motor_params
     c_star, gamma, rho_p, a, n = prop_params
 
     r_case = id_case / 2.0
     A_throat = 0.25 * np.pi * d_throat**2
     A_exit = 0.25 * np.pi * d_exit**2
-    Pa_sl = 101325.0  # Pa, for the sea-level thrust shown in the plots
+    Pa_sl = 101325.0 
 
     casing_circle = Point(0, 0).buffer(r_case, quad_segs=32)
     initial_port = extract_closed_port_from_dxf(dxf_path, scale=dxf_scale)
 
-    # Stop thresholds relative to the casing so they work in any unit system
     area_tol = 1e-6 * casing_circle.area
     perim_tol = 1e-6 * casing_circle.length * L_grain
 
@@ -152,9 +139,8 @@ def run_regression_simulation(motor_params, prop_params, dxf_path="Group10_P.dxf
         if A_burn < perim_tol:
             break
 
-        # Steady state: rho_p * A_burn * a * Pc^n = Pc * A_throat / c_star
-        Pc = (a * rho_p * c_star * A_burn / A_throat) ** (1.0 / (1.0 - n))  # Pa
-        rb = a * Pc**n  # m/s
+        Pc = (a * rho_p * c_star * A_burn / A_throat) ** (1.0 / (1.0 - n)) 
+        rb = a * Pc**n
 
         times.append(current_time)
         pressures.append(Pc)
@@ -190,7 +176,7 @@ def run_regression_simulation(motor_params, prop_params, dxf_path="Group10_P.dxf
     max_thrust = np.max(f_arr)
     impulse = np.sum(0.5 * (f_arr[1:] + f_arr[:-1]) * np.diff(time_arr))
     average_thrust = impulse / burn_time
-    
+
     print("\n===================== Burn Data ====================")
     print(f"Burn time:                      {burn_time:.3f} s")
     print(f"Max chamber pressure (MEOP):    {max_pc * c.PA2PSI:.2f} psi")
@@ -208,7 +194,6 @@ def run_regression_simulation(motor_params, prop_params, dxf_path="Group10_P.dxf
 
 def animate_burn(time_arr, p_arr, f_arr, burn_rates, webs, geom_history, r_case,
                  anim_frames=140, gif_path="Group10_P_burn.gif", plot=True, export=True):
-    """Grain cross-section + Pc + thrust animation. Plots in in / psi / lbf."""
     p_psi = p_arr * c.PA2PSI
     f_lbf = f_arr / c.LBF2N
     r_in = r_case * c.M2IN
@@ -267,7 +252,6 @@ def animate_burn(time_arr, p_arr, f_arr, burn_rates, webs, geom_history, r_case,
             current_patch_holder[0].remove()
             current_patch_holder[0] = None
 
-        # Geometry is stored in meters; scale to inches for display
         geom_in = geom_history[idx]
         patch = shapely_to_mpl_patch(geom_in, facecolor='darkorange', edgecolor='black', alpha=0.88)
         if patch is not None:

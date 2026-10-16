@@ -43,8 +43,8 @@ TWR_LO = thrust_arr[0] / (c.g * (m_inert_total + m_prop_arr[0]))
 # Run 2dof
 t, x, z, vx, vz, ax, az = rocket_2dof(rocket_params, motor_params, prop_params, launch_params, burn_data)
 
-speed = np.hypot(vx, vz)
-accel = np.hypot(ax, az)
+speed = np.hypot(vx, vz) # m/s
+accel = np.hypot(ax, az) # m/s^2
 
 i_apo = np.argmax(z)
 i_v = np.argmax(speed)
