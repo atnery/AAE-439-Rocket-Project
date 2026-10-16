@@ -26,9 +26,9 @@ a = 0.0318 * c.IN2M / c.PSI2PA**n
 prop_params = [c_star, gamma, rho_p, a, n]
 
 # Launch conditions
-launch_angle = 90 # deg
+launch_angle = 85 # deg
 rail_length = 2.0 # m
-wind_speed = 0 # m/s
+wind_speed = -5 # m/s
 launch_params = [launch_angle, rail_length, wind_speed]
 
 time_arr, p_arr, m_prop_arr = run_regression_simulation(motor_params, prop_params, plot=False, export=False)
