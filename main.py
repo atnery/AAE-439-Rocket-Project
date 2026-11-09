@@ -31,9 +31,9 @@ a = 0.0318 * c.IN2M / c.PSI2PA**n
 prop_params = [c_star, gamma, rho_p, a, n]
 
 # Launch conditions
-launch_angle = 85 # deg
+launch_angle = 90 # deg
 rail_length = 2.0 # m
-wind_speed = -6 # m/s
+wind_speed = -7.77778 # m/s
 launch_params = [launch_angle, rail_length, wind_speed]
 
 # Run motor simulation
